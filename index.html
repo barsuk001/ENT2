@@ -229,7 +229,7 @@ const GROUPS=[
 ];
 const SUBJ=GROUPS.flatMap(g=>g[1]);
 const LV=[["easy","Лёгкий"],["medium","Средний"],["hard","Сложный"]];
-const N=25,T=40,app=document.getElementById("app");
+const N=25,T=20,app=document.getElementById("app");
 let run=null,timer=null;
 
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
