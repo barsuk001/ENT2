@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ЕНТ: бесплатные тесты</title>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF5F8;--ink:#10303C;--mut:#5B7782;--sky:#0093B5;--gold:#F4B400;--ok:#1E8E5A;--bad:#C93C3C;--card:#fff;--line:#CFE0E8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Onest,system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:clamp(34px,8vw,52px);line-height:1.05;font-weight:800;margin:10px 0 12px;letter-spacing:-.02em}
+h2{font-size:26px;margin:0 0 8px;font-weight:800}
+p{margin:0 0 14px;color:var(--mut)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.cta{background:var(--ink);color:#fff;padding:15px 26px;font-weight:600;font-size:18px}
+.ghost{background:#fff;border:2px solid var(--line);padding:12px 20px;font-weight:600;color:var(--ink)}
+.subj{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);padding:16px 18px;margin-bottom:10px;color:var(--ink);font-weight:600}
+.subj:hover:not(:disabled){border-color:var(--sky)}
+.subj:disabled{opacity:.55;cursor:default}
+.subj small{color:var(--mut);font-weight:400}
+.bar{display:flex;gap:3px;margin:6px 0 22px}
+.bar i{flex:1;height:8px;border-radius:2px;background:var(--line)}
+.bar i.ok{background:var(--sky)}.bar i.bad{background:var(--bad)}.bar i.now{background:var(--gold)}
+.q{font-size:22px;font-weight:600;line-height:1.3;margin-bottom:18px}
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);padding:14px 16px;margin-bottom:10px;color:var(--ink)}
+.opt:hover:not(:disabled){border-color:var(--sky)}
+.opt.ok{border-color:var(--ok);background:#E5F5EC}.opt.bad{border-color:var(--bad);background:#FBE8E8}
+.score{font-size:76px;font-weight:800;line-height:1;margin:6px 0}
+.miss{background:var(--card);border-left:5px solid var(--bad);padding:12px 16px;margin-bottom:10px;border-radius:0 10px 10px 0}
+.miss b{color:var(--ok)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.tm{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:6px}.tm i{display:block;height:100%;width:100%;background:var(--gold);transition:width 1s linear}
+.hist{color:var(--mut);font-size:15px}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="questions.js"></script>
+<script>
+const GROUPS=[
+ ["Обязательные предметы",[["history","История Казахстана"],["math","Математическая грамотность"],["read","Грамотность чтения"]]],
+ ["Профильные предметы",[["mathp","Математика"],["phys","Физика"],["chem","Химия"],["bio","Биология"],["geo","География"],["inf","Информатика"],["whist","Всемирная история"],["law","Основы права"],["eng","Английский язык"],["rus","Русский язык и литература"],["kaz","Казахский язык и литература"]]]
+];
+const SUBJ=GROUPS.flatMap(g=>g[1]);
+const LV=[["easy","Лёгкий"],["medium","Средний"],["hard","Сложный"]];
+const N=25,T=40,app=document.getElementById("app");
+let run=null,timer=null;
+
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const rd=k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}};
+const wr=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const name=id=>SUBJ.find(s=>s[0]===id)[1];
+const lname=l=>LV.find(x=>x[0]===l)[1];
+const bank=id=>{const b=(window.BANK||{})[id];return Array.isArray(b)?{easy:b}:(b||{})};
+const tests=(id,l)=>Math.floor((bank(id)[l]||[]).length/N);
+const done=(id,l)=>(rd("ent_p")||{})[id+"_"+l]||0;
+const isOpen=(id,i)=>i===0||(tests(id,LV[i-1][0])>0&&done(id,LV[i-1][0])>=tests(id,LV[i-1][0]));
+const el=h=>{app.innerHTML=h;window.scrollTo(0,0)};
+
+function home(){
+  clearInterval(timer);
+  if(!window.BANK){el('<h1>Не найден файл с вопросами</h1><p>Загрузите файл questions.js в тот же репозиторий, что и index.html. Название должно быть точно такое: questions.js</p>');return}
+  const hist=(rd("ent_results")||[]).slice(0,5).map(r=>`<div>${r.date}: ${name(r.id)}, ${lname(r.l)}, ${r.score} из ${r.total}</div>`).join("");
+  el(`<h1>Готовимся к ЕНТ бесплатно</h1>
+  <p>Тесты по ${N} вопросов, на каждый вопрос ${T} секунд. Три уровня сложности открываются по очереди.</p>`+
+  GROUPS.map(([t,list])=>`<h2 style="margin-top:26px">${t}</h2>`+list.map(([id,n])=>{const ok=tests(id,"easy")>0;
+    return `<button class="subj" ${ok?`onclick="subj('${id}')"`:"disabled"}><span>${n}</span><small>${ok?"Пройти бесплатный тест":"Скоро"}</small></button>`}).join("")).join("")+
+  (hist?`<h2 style="margin-top:28px">Мои результаты</h2><div class="hist">${hist}</div>`:""));
+}
+
+function subj(id){
+  el(`<button class="ghost" onclick="home()">К предметам</button><h1 style="font-size:34px">${name(id)}</h1><p>Выберите уровень. Следующий открывается, когда пройдены все тесты предыдущего.</p>`+
+  LV.map(([l,n],i)=>{const t=tests(id,l),d=Math.min(done(id,l),t),op=isOpen(id,i)&&t>0;
+    const note=t===0?"Скоро":!isOpen(id,i)?"Закрыт":`${d} из ${t} тестов`;
+    return `<button class="subj" ${op?`onclick="start('${id}','${l}')"`:"disabled"}><span>${n}</span><small>${note}</small></button>`}).join(""));
+}
+
+function start(id,l){
+  const t=tests(id,l),idx=done(id,l)%t;
+  const qs=bank(id)[l].slice(idx*N,idx*N+N).map(([q,o,c])=>({q,opts:shuffle(o.map((x,i)=>({t:x,ok:i===c})))}));
+  run={id,l,qs:shuffle(qs),i:0,res:[],lock:false};show();
+}
+
+function show(){
+  const {qs,i,res}=run,cur=qs[i];run.lock=false;run.left=T;
+  const bar=qs.map((_,k)=>`<i class="${k<res.length?(res[k].ok?"ok":"bad"):k===i?"now":""}"></i>`).join("");
+  el(`<p>${name(run.id)}, ${lname(run.l)}, вопрос ${i+1} из ${qs.length}</p><div class="bar">${bar}</div>
+  <div class="tm"><i id="tb"></i></div><p id="tt">Осталось ${T} с</p>
+  <div class="q">${cur.q}</div>`+cur.opts.map((o,k)=>`<button class="opt" onclick="answer(${k})">${o.t}</button>`).join(""));
+  clearInterval(timer);
+  timer=setInterval(()=>{run.left--;const tb=document.getElementById("tb"),tt=document.getElementById("tt");
+    if(tb)tb.style.width=(run.left/T*100)+"%";if(tt)tt.textContent="Осталось "+run.left+" с";
+    if(run.left<=0)answer(-1)},1000);
+}
+
+function answer(k){
+  if(run.lock)return;run.lock=true;clearInterval(timer);
+  const cur=run.qs[run.i],btns=[...document.querySelectorAll(".opt")];
+  cur.opts.forEach((o,j)=>{btns[j].disabled=true;if(o.ok)btns[j].classList.add("ok")});
+  const ok=k>=0&&cur.opts[k].ok;
+  if(k>=0&&!ok)btns[k].classList.add("bad");
+  run.res.push({ok,q:cur.q,right:cur.opts.find(o=>o.ok).t,mine:k>=0?cur.opts[k].t:"нет ответа (время вышло)"});
+  setTimeout(()=>{run.i++;run.i<run.qs.length?show():finish()},k<0?1600:900);
+}
+
+function finish(){
+  const score=run.res.filter(r=>r.ok).length,total=run.qs.length,{id,l}=run;
+  const P=rd("ent_p")||{};P[id+"_"+l]=done(id,l)+1;wr("ent_p",P);
+  const h=rd("ent_results")||[];h.unshift({id,l,score,total,date:new Date().toLocaleDateString("ru-RU")});wr("ent_results",h.slice(0,20));
+  const t=tests(id,l),all=done(id,l)>=t,li=LV.findIndex(x=>x[0]===l),nxt=LV[li+1]&&tests(id,LV[li+1][0])>0;
+  const miss=run.res.filter(r=>!r.ok).map(r=>`<div class="miss">${r.q}<br>Ваш ответ: ${r.mine}<br>Верно: <b>${r.right}</b></div>`).join("");
+  el(`<p>${name(id)}, ${lname(l)}</p><div class="score">${score}/${total}</div><p>${Math.round(score/total*100)}% верных ответов</p>`+
+  (all?`<p><b>Все тесты уровня «${lname(l)}» пройдены!</b>${nxt?" Следующий уровень открыт.":""}</p>`:"")+
+  `<div class="row"><button class="cta" onclick="start('${id}','${l}')">Следующий тест</button><button class="ghost" onclick="subj('${id}')">К уровням</button></div>`+
+  (miss?`<h2>Разбор ошибок</h2>${miss}`:"<h2>Ошибок нет!</h2>"));
+}
+home();
+</script>
+</body>
+</html>
